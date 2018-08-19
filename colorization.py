@@ -38,10 +38,10 @@ if __name__ == '__main__':
     device = torch.device("cuda")
 
     fold = 0
-    batch_size = 2
-    num_workers = 2
-    root = Path("G:\Johns Hopkins University\Challenge")
-    # root = Path("/home/xingtong/")
+    batch_size = 6
+    num_workers = 3
+    # root = Path("G:\Johns Hopkins University\Challenge")
+    root = Path("/home/xingtong/")
     data_root = root / "miccai_challenge_2018_training_data"
     json_file_name = str(data_root / "labels.json")
     train_file_names, val_file_names = get_color_file_names_both_cam(fold=fold, root=data_root)
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-    lr = 2.0e-5
+    lr = 2.0e-4
     gaussian_std = 0.05
     n_epochs = 200
     img_width = 1280
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     init_net(netG, init_type='normal', init_gain=0.02)
     summary(netG, input_size=(3, img_height, img_width))
     # Building Discriminator
-    netD = Discriminator(input_nc=3, img_height=img_height, img_width=img_width, filter_base=6, num_block=7)
+    netD = Discriminator(input_nc=3, img_height=img_height, img_width=img_width, filter_base=3, num_block=7)
     init_net(netD, init_type='normal', init_gain=0.02)
     summary(netD, input_size=(3, img_height, img_width))
 
@@ -139,10 +139,10 @@ if __name__ == '__main__':
                                     std=gaussian_std - (gaussian_std / n_epochs) * epoch)
 
         try:
-            for i, (color_inputs, gray_inputs) in enumerate(train_loader):
+            for i, (gray_inputs, color_inputs) in enumerate(train_loader):
                 color_inputs, gray_inputs = color_inputs.to(device), gray_inputs.to(device)
-
-                # ## display
+                #
+                # # ## display
                 # gray = gray_inputs.data.cpu().numpy()[0]
                 # color = color_inputs.data.cpu().numpy()[0]
                 # gray = np.moveaxis(gray, source=[0, 1, 2], destination=[2, 0, 1])
@@ -209,12 +209,14 @@ if __name__ == '__main__':
                 tq.set_postfix(
                     loss=' D={:.5f}, G={:.5f}, Rec={:.5f}'.format(mean_D_loss, mean_G_loss, mean_recover_loss))
 
-                if i == dataset_length - 1:
+                if i == dataset_length - 2:
+                    color_inputs_cpu = color_inputs.data.cpu().numpy()
+                    pred_color_cpu = pred_colors.data.cpu().numpy()
                     color_imgs = []
                     pred_color_imgs = []
                     for j in range(batch_size):
-                        color_img = color_inputs.data.cpu().numpy()[j]
-                        pred_color_img = pred_colors.data.cpu().numpy()[j]
+                        color_img = color_inputs_cpu[j]
+                        pred_color_img = pred_color_cpu[j]
 
                         color_img = np.moveaxis(color_img, source=[0, 1, 2], destination=[2, 0, 1])
                         pred_color_img = np.moveaxis(pred_color_img, source=[0, 1, 2], destination=[2, 0, 1])
@@ -256,7 +258,7 @@ if __name__ == '__main__':
                     loss='validation Rec={:.5f}'.format(mean_rec_loss))
                 if mean_rec_loss < best_mean_rec_loss:
                     counter = 0
-                    for j, (color_inputs, gray_inputs) in enumerate(val_loader):
+                    for j, (gray_inputs, color_inputs) in enumerate(val_loader):
                         netG.eval()
                         color_inputs, gray_inputs = color_inputs.to(device), gray_inputs.to(device)
                         pred_color_inputs = netG(gray_inputs)
