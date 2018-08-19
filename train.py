@@ -41,9 +41,13 @@ if __name__ == '__main__':
     fold = 0
     batch_size = 3
     num_workers = 3
-    root = Path("/home/xingtong/miccai_challenge_2018_training_data")
-    json_file_name = "/home/xingtong/miccai_challenge_2018_training_data/labels.json"
-    train_file_names, val_file_names = get_color_file_names(fold=fold, root=root)
+    root = Path("G:\Johns Hopkins University\Challenge")
+    # root = Path("/home/xingtong/")
+    data_root = root / "miccai_challenge_2018_training_data"
+    json_file_name = str(data_root / "labels.json")
+    # root = Path("/home/xingtong/miccai_challenge_2018_training_data")
+    # json_file_name = "/home/xingtong/miccai_challenge_2018_training_data/labels.json"
+    train_file_names, val_file_names = get_color_file_names(fold=fold, root=data_root)
 
     train_dataset = Challenge2018Dataset(image_file_names=train_file_names,
                                          json_file_name=json_file_name,
@@ -67,13 +71,13 @@ if __name__ == '__main__':
     optimizer = Adam(model.parameters(), lr=lr)
 
     try:
-        model_root = Path("/home/xingtong/Challenge/models")
+        model_root = root / "models"
         model_root.mkdir(mode=0o777, parents=False)
     except OSError:
         print("path exists")
 
     try:
-        results_root = Path("/home/xingtong/Challenge/results")
+        results_root = root / "results"
         results_root.mkdir(mode=0o777, parents=False)
     except OSError:
         print("path exists")

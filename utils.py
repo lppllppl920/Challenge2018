@@ -10,14 +10,6 @@ import torch
 import tqdm
 
 
-
-def write_event(log, step, **data):
-    data['step'] = step
-    data['dt'] = datetime.now().isoformat()
-    log.write(json.dumps(data, sort_keys=True))
-    log.write('\n')
-    log.flush()
-
 def read_json(file_path = "G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data\labels.json"):
     with open(file_path) as data_file:
         data = json.load(data_file)
@@ -47,6 +39,24 @@ def get_color_file_names(fold=0,
             train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
     return train_file_names, val_file_names
 
+def get_color_file_names_both_cam(fold=0,
+                         root=Path("G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data")):
+    folds = {0: [1, 3],
+             1: [2, 5],
+             2: [4, 8],
+             3: [6, 7]}
+
+    train_file_names = []
+    val_file_names = []
+    for i in range(1, 8):
+        if i in folds[fold]:
+            val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+            val_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+        else:
+            train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+            train_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+    return train_file_names, val_file_names
+
 
 def cuda(x):
     return x.cuda(async=True) if torch.cuda.is_available() else x
@@ -55,8 +65,8 @@ def cuda(x):
 def write_event(log, step, **data):
     data['step'] = step
     data['dt'] = datetime.now().isoformat()
-    log.write(json.dumps(data, sort_keys=True))
-    log.write(u'\n')
+    log.write(unicode(json.dumps(data, sort_keys=True)))
+    log.write(unicode('\n'))
     log.flush()
 
 
@@ -147,3 +157,34 @@ def write_images(class_images, class_color_table, root, prefix, frame_count):
         frame_count += 1
 
     return frame_count
+
+
+def init_net(net, init_type='normal', init_gain=0.02):
+    assert(torch.cuda.is_available())
+    net = net.cuda()
+    init_weights(net, init_type, gain=init_gain)
+    return net
+
+
+def init_weights(net, init_type='normal', gain=0.02):
+    def init_func(m):
+        classname = m.__class__.__name__
+        if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+            if init_type == 'normal':
+                m.weight.data.normal_(0.0, gain)
+            elif init_type == 'xavier':
+                m.weight.data.xavier_normal_(gain=gain)
+            elif init_type == 'kaiming':
+                m.weight.data.kaiming_normal_(a=0, mode='fan_in')
+            elif init_type == 'orthogonal':
+                m.weight.data.orthogonal_(gain=gain)
+            else:
+                raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
+            if hasattr(m, 'bias') and m.bias is not None:
+                m.bias.data.fill_(0.0)
+        elif classname.find('BatchNorm2d') != -1:
+            m.weight.data.normal_(1.0, gain)
+            m.bias.data.fill_(0.0)
+
+    print('initialize network with %s' % init_type)
+    net.apply(init_func)

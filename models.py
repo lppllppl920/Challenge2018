@@ -393,6 +393,106 @@ class UNet(nn.Module):
         return x_out
 
 
+class UNet_Colorization(nn.Module):
+    """
+    Vanilla UNet.
+
+    Implementation from https://github.com/lopuhin/mapillary-vistas-2017/blob/master/unet_models.py
+    """
+    output_downscaled = 1
+    module = UNetModule
+
+    def __init__(self,
+                 input_channels=3,
+                 filters_base=32,
+                 down_filter_factors=(1, 2, 4, 8, 16),
+                 up_filter_factors=(1, 2, 4, 8, 16),
+                 bottom_s=4,
+                 num_classes=1):
+        super(UNet_Colorization, self).__init__()
+        self.num_classes = num_classes
+        assert len(down_filter_factors) == len(up_filter_factors)
+        assert down_filter_factors[-1] == up_filter_factors[-1]
+        down_filter_sizes = [filters_base * s for s in down_filter_factors]
+        up_filter_sizes = [filters_base * s for s in up_filter_factors]
+        self.down, self.up = nn.ModuleList(), nn.ModuleList()
+        self.down.append(self.module(input_channels, down_filter_sizes[0]))
+        for prev_i, nf in enumerate(down_filter_sizes[1:]):
+            self.down.append(self.module(down_filter_sizes[prev_i], nf))
+        for prev_i, nf in enumerate(up_filter_sizes[1:]):
+            self.up.append(self.module(
+                down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i]))
+        pool = nn.MaxPool2d(2, 2)
+        pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
+        upsample = nn.Upsample(scale_factor=2)
+        upsample_bottom = nn.Upsample(scale_factor=bottom_s)
+        self.downsamplers = [None] + [pool] * (len(self.down) - 1)
+        self.downsamplers[-1] = pool_bottom
+        self.upsamplers = [upsample] * len(self.up)
+        self.upsamplers[-1] = upsample_bottom
+        self.conv_final = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
+        self.conv_colorization = nn.Conv2d(num_classes, 3, 1)
+
+    def forward(self, x):
+        xs = []
+        for downsample, down in zip(self.downsamplers, self.down):
+            x_in = x if downsample is None else downsample(xs[-1])
+            x_out = down(x_in)
+            xs.append(x_out)
+
+        x_out = xs[-1]
+        for x_skip, upsample, up in reversed(
+                list(zip(xs[:-1], self.upsamplers, self.up))):
+            x_out = upsample(x_out)
+            x_out = up(torch.cat([x_out, x_skip], 1))
+        x_out = self.conv_final(x_out)
+        x_out = self.conv_colorization(x_out)
+        return x_out
+
+
+class DynamicGNoise(nn.Module):
+    def __init__(self, shape1, shape2, std=0.05):
+        super(DynamicGNoise, self).__init__()
+        self.noise = torch.zeros(shape1, shape2).cuda()
+        self.std = std
+
+    def forward(self, x):
+        self.noise.data.normal_(0, std=self.std)
+        return x + self.noise.expand(x.size())
+
+
+class Discriminator(nn.Module):
+    def __init__(self, input_nc=3, img_height=1024, img_width=1280, filter_base=6, num_block=6):
+        super(Discriminator, self).__init__()
+
+        def discriminator_block(in_filters, out_filters, bn=True):
+            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Dropout2d(0.25)]
+            if bn:
+                block.append(nn.BatchNorm2d(out_filters, 0.8))
+            return block
+
+        model = []
+        model += discriminator_block(input_nc, filter_base, bn=False)
+
+        for i in range(num_block - 1):
+            model += discriminator_block(filter_base * 2 ** i, filter_base * 2 ** (i + 1))
+        self.model = nn.Sequential(*model)
+
+        # The height and width of downsampled image
+        height = img_height // 2 ** num_block
+        width = img_width // 2 ** num_block
+
+        self.adv_layer = nn.Linear(filter_base * 2 ** (num_block - 1) * height * width, 1)
+
+    def forward(self, img):
+        out = self.model(img)
+        out = out.view(out.shape[0], -1)
+        validity = self.adv_layer(out)
+        return validity
+
+
 class AlbuNet(nn.Module):
     """
         UNet (https://arxiv.org/abs/1505.04597) with Resnet34(https://arxiv.org/abs/1512.03385) encoder

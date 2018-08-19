@@ -7,6 +7,30 @@ from albumentations.torch.functional import img_to_tensor
 
 import utils
 
+class Challenge2018ColorizationDataset(Dataset):
+    def __init__(self, image_file_names, to_augment=False, transform=None):
+        self.image_file_names = image_file_names
+        self.to_augment = to_augment
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_file_names)
+
+    def __getitem__(self, idx):
+        img_file_name = str(self.image_file_names[idx])
+        mask = load_image(img_file_name)
+        image = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
+        ## Normalize mask image (color) to [-1.0, 1.0] (Augmentation later won't normalize mask image)
+        mask = normalize(mask, mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5), max_pixel_value=255)
+        image = np.repeat(np.expand_dims(image, axis=-1), repeats=3, axis=-1)
+
+        if self.to_augment:
+            data = {"image": image, "mask": mask}
+            augmented = self.transform(**data)
+            image, mask = augmented["image"], augmented["mask"]
+
+        return img_to_tensor(image), img_to_tensor(mask)
+
 
 class Challenge2018Dataset(Dataset):
     def __init__(self, image_file_names, json_file_name, to_augment=False, transform=None):
@@ -57,4 +81,10 @@ def load_mask(path, class_color_table):
     return mask
 
 
+def normalize(img, mean, std, max_pixel_value=255.0):
+    img = img.astype(np.float32) / max_pixel_value
+
+    img -= np.ones(img.shape) * mean
+    img /= np.ones(img.shape) * std
+    return img
 
