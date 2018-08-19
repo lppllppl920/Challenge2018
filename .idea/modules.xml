@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/Challenge.iml" filepath="$PROJECT_DIR$/.idea/Challenge.iml" />
+      <module fileurl="file://$USER_HOME$/PycharmProjects/RelativisticGAN/.idea/RelativisticGAN.iml" filepath="$USER_HOME$/PycharmProjects/RelativisticGAN/.idea/RelativisticGAN.iml" />
+      <module fileurl="file://G:/Johns Hopkins University/Challenge/robot-surgery-segmentation-master/robot-surgery-segmentation-master/.idea/robot-surgery-segmentation-master.iml" filepath="G:/Johns Hopkins University/Challenge/robot-surgery-segmentation-master/robot-surgery-segmentation-master/.idea/robot-surgery-segmentation-master.iml" />
+    </modules>
+  </component>
+</project>
