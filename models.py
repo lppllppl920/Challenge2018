@@ -432,6 +432,7 @@ class UNet_Colorization(nn.Module):
         self.upsamplers[-1] = upsample_bottom
         self.conv_final = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
         self.conv_colorization = nn.Conv2d(num_classes, 3, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         xs = []
@@ -446,7 +447,7 @@ class UNet_Colorization(nn.Module):
             x_out = upsample(x_out)
             x_out = up(torch.cat([x_out, x_skip], 1))
         x_out = self.conv_final(x_out)
-        x_out = self.conv_colorization(x_out)
+        x_out = self.tanh(self.conv_colorization(x_out))
         return x_out
 
 
