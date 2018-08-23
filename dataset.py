@@ -6,6 +6,46 @@ from torch.utils.data import Dataset
 from albumentations.torch.functional import img_to_tensor
 
 import utils
+import random
+
+
+class VideoOpticalFlowDataset(Dataset):
+    def __init__(self, image_file_names, to_augment=False, transform=None, img_width=1280, img_height=1024, factor=0.05):
+        self.image_file_names = image_file_names
+        self.to_augment = to_augment
+        self.transform = transform
+        self.scale = factor * np.sqrt(img_height ** 2 + img_width ** 2)
+
+    def __len__(self):
+        return len(self.image_file_names)
+
+    def __getitem__(self, idx):
+        img_file_name = str(self.image_file_names[idx])
+        if idx != 0 and idx != len(self.image_file_names) - 1:
+            plus = random.uniform(0, 1)
+            if plus <= 0.5:
+                adjacent_img_file_name = str(self.image_file_names[idx - 1])
+            else:
+                adjacent_img_file_name = str(self.image_file_names[idx + 1])
+        else:
+            if idx == 0:
+                adjacent_img_file_name = str(self.image_file_names[idx + 1])
+            else:
+                adjacent_img_file_name = str(self.image_file_names[idx - 1])
+
+        img_1 = cv2.imread(str(img_file_name))
+        img_2 = cv2.imread(str(adjacent_img_file_name))
+
+        ## The position of a flow vector is based on the grid of img_1
+        flow = optical_flow_estimate(img_2, img_1)
+
+        if self.to_augment:
+            data = {"image": img_1, "mask": flow}
+            augmented = self.transform(**data)
+            img_1, flow = augmented["image"], augmented["mask"]
+
+        return img_to_tensor(img_1), img_to_tensor(flow / self.scale)
+
 
 class Challenge2018ColorizationDataset(Dataset):
     def __init__(self, image_file_names, to_augment=False, transform=None):
@@ -88,3 +128,9 @@ def normalize(img, mean, std, max_pixel_value=255.0):
     img /= np.ones(img.shape) * std
     return img
 
+
+def optical_flow_estimate(img_1, img_2):
+    gray_1 = cv2.cvtColor(img_1, cv2.COLOR_BGR2GRAY)
+    gray_2 = cv2.cvtColor(img_2, cv2.COLOR_BGR2GRAY)
+    flow = cv2.calcOpticalFlowFarneback(gray_1, gray_2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+    return flow

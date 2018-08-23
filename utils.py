@@ -159,32 +159,71 @@ def write_images(class_images, class_color_table, root, prefix, frame_count):
     return frame_count
 
 
-def init_net(net, init_type='normal', init_gain=0.02):
+def init_net(net):
     assert(torch.cuda.is_available())
     net = net.cuda()
-    init_weights(net, init_type, gain=init_gain)
+    glorot_weight_zero_bias(net)
     return net
 
 
-def init_weights(net, init_type='normal', gain=0.02):
-    def init_func(m):
-        classname = m.__class__.__name__
-        if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
-            if init_type == 'normal':
-                m.weight.data.normal_(0.0, gain)
-            elif init_type == 'xavier':
-                m.weight.data.xavier_normal_(gain=gain)
-            elif init_type == 'kaiming':
-                m.weight.data.kaiming_normal_(a=0, mode='fan_in')
-            elif init_type == 'orthogonal':
-                m.weight.data.orthogonal_(gain=gain)
-            else:
-                raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
-            if hasattr(m, 'bias') and m.bias is not None:
-                m.bias.data.fill_(0.0)
-        elif classname.find('BatchNorm2d') != -1:
-            m.weight.data.normal_(1.0, gain)
-            m.bias.data.fill_(0.0)
+def glorot_weight_zero_bias(model):
+    """
+    Initalize parameters of all modules
+    by initializing weights with glorot  uniform/xavier initialization,
+    and setting biases to zero.
+    Weights from batch norm layers are set to 1.
 
-    print('initialize network with %s' % init_type)
-    net.apply(init_func)
+    Parameters
+    ----------
+    model: Module
+    """
+    for module in model.modules():
+        if hasattr(module, 'weight'):
+            if not ('BatchNorm' in module.__class__.__name__):
+                torch.nn.init.xavier_uniform_(module.weight, gain=1)
+            else:
+                torch.nn.init.constant_(module.weight, 1)
+        if hasattr(module, 'bias'):
+            if module.bias is not None:
+                torch.nn.init.constant_(module.bias, 0)
+
+def draw_hsv(flow):
+    h, w = flow.shape[:2]
+    fx, fy = flow[:,:,0], flow[:,:,1]
+    ang = np.arctan2(fy, fx) + np.pi
+    v = np.sqrt(fx*fx+fy*fy)
+    hsv = np.zeros((h, w, 3), np.uint8)
+    hsv[...,0] = ang*(180/np.pi/2)
+    hsv[...,1] = 255
+    hsv[...,2] = np.minimum(v*4, 255)
+    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    return bgr
+
+
+def draw_embeddings(colors, embeddings):
+    embeddings_cpu = embeddings.data.cpu().numpy()
+    colors_cpu = colors.data.cpu().numpy()
+    np.random.seed(0)
+    projection = np.random.randn(3, embeddings_cpu.shape[1])
+
+    images = []
+    for i in range(embeddings_cpu.shape[0]):
+        temp = np.moveaxis(embeddings_cpu[i], [0, 1, 2], [2, 0, 1])
+        temp = np.expand_dims(temp, axis=-1)
+        print(temp.shape)
+        projected = np.squeeze(np.matmul(projection, temp))
+        print(projected.shape)
+        projected_display = np.uint8(255 * (projected - np.max(projected)) / (np.max(projected) - np.min(projected)))
+        display_color = np.uint8(255 * (np.moveaxis(colors_cpu[i], [0, 1, 2], [2, 0, 1]) * 0.5 + 0.5))
+        display = cv2.hconcat((display_color, projected_display))
+        images.append(display)
+        cv2.imshow("embeddings_" + str(i), display)
+
+    return images
+
+
+def write_images(images, root, file_prefix="embeddings"):
+    for i, image in enumerate(images):
+        cv2.imwrite(str(root / (file_prefix + "_{:03d}.png").format(i)), image)
+
+    return
