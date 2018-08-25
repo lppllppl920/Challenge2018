@@ -10,7 +10,7 @@ import random
 
 
 class VideoOpticalFlowDataset(Dataset):
-    def __init__(self, image_file_names, to_augment=False, transform=None, img_width=1280, img_height=1024, factor=0.05):
+    def __init__(self, image_file_names, to_augment=False, transform=None, img_width=640, img_height=480, factor=0.1):
         self.image_file_names = image_file_names
         self.to_augment = to_augment
         self.transform = transform
@@ -45,6 +45,41 @@ class VideoOpticalFlowDataset(Dataset):
             img_1, flow = augmented["image"], augmented["mask"]
 
         return img_to_tensor(img_1), img_to_tensor(flow / self.scale)
+
+
+class Challenge2018OpticalFlowDataset(Dataset):
+    def __init__(self, image_file_names, to_augment=False, transform=None, img_width=1280, img_height=1024, factor=0.05, p=0.5):
+        self.image_file_names = image_file_names
+        self.to_augment = to_augment
+        self.transform = transform
+        self.scale = factor * np.sqrt(img_height ** 2 + img_width ** 2)
+        self.p = p
+
+    def __len__(self):
+        return len(self.image_file_names)
+
+    def __getitem__(self, idx):
+        img_left_file_name = str(self.image_file_names[idx])
+        img_right_file_name = img_left_file_name.replace("left_frames", "right_frames")
+
+        image_left = cv2.imread(str(img_left_file_name))
+        image_right = cv2.imread(str(img_right_file_name))
+
+        prob = random.uniform(0, 1)
+        if prob <= self.p:
+            flow = optical_flow_estimate(image_right, image_left)
+            if self.to_augment:
+                data = {"image": image_left, "mask": flow}
+                augmented = self.transform(**data)
+                image, flow = augmented["image"], augmented["mask"]
+        else:
+            flow = optical_flow_estimate(image_left, image_right)
+            if self.to_augment:
+                data = {"image": image_right, "mask": flow}
+                augmented = self.transform(**data)
+                image, flow = augmented["image"], augmented["mask"]
+
+        return img_to_tensor(image), img_to_tensor(flow / self.scale)
 
 
 class Challenge2018ColorizationDataset(Dataset):

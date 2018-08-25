@@ -105,10 +105,11 @@ Mahendran, A., Thewlis, J., & Vedaldi, A. (n.d.). Cross Pixel Optical Flow Simil
 #         return loss
 
 class CrossPixelSimilarityLoss:
-    def __init__(self, sigma=0.0036, sampling_size=512):
+    def __init__(self, sigma=0.0036, sampling_size=512, norm_epsilon=1.0):
         self.sigma = sigma
         self.sampling_size = sampling_size
         self.epsilon = 1.0e-15
+        self.norm_epsilon = norm_epsilon
 
     def __call__(self, embeddings, flows):
         assert (flows.shape[1] == 2)
@@ -120,12 +121,11 @@ class CrossPixelSimilarityLoss:
         flows_sample = torch.index_select(flows_flatten, 2, torch.from_numpy(random_locations).long().cuda())
         # Broadcasting can handle these "1" dimension size
         k_f = self.epsilon + torch.norm(torch.unsqueeze(flows_sample, dim=-1).permute(0, 3, 2, 1) -
-                                   torch.unsqueeze(flows_sample, dim=-1).permute(0, 2, 3, 1), p=2, dim=3,
-                                   keepdim=False)
+                                        torch.unsqueeze(flows_sample, dim=-1).permute(0, 2, 3, 1), p=2, dim=3,
+                                        keepdim=False)
+        # print_info(k_f)
         # column-wise normalization
         s_f = k_f / torch.sum(k_f, dim=1, keepdim=True)
-        # print_info(s_f)
-
 
         ## Build embeddings correlation matrix
         embeddings_flatten = embeddings.view(embeddings.shape[0], embeddings.shape[1], -1)
@@ -133,11 +133,13 @@ class CrossPixelSimilarityLoss:
         embeddings_sample = torch.index_select(embeddings_flatten, 2, torch.from_numpy(random_locations).long().cuda())
 
         embeddings_sample_norm = torch.norm(embeddings_sample, p=2, dim=1, keepdim=True)
-        k_theta = 1.0 + self.epsilon - (torch.matmul(embeddings_sample.permute(0, 2, 1), embeddings_sample)) / \
-                  (1.0 + torch.matmul(embeddings_sample_norm.permute(0, 2, 1), embeddings_sample_norm))
+        k_theta = 1.0 + self.epsilon - (torch.matmul(embeddings_sample.permute(0, 2, 1), embeddings_sample)) / (
+            torch.matmul(embeddings_sample_norm.permute(0, 2, 1) + self.norm_epsilon,
+                         embeddings_sample_norm + self.norm_epsilon))
+        # print_info(k_theta)
         # column-wise normalization
         s_theta = k_theta / torch.sum(k_theta, dim=1, keepdim=True)
-        # print_info(s_theta)
+
         ## Cross entropy
         loss = -torch.mean(torch.mul(s_f, torch.log(s_theta)))
 
