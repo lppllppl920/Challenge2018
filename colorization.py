@@ -87,8 +87,8 @@ if __name__ == '__main__':
     model_path = model_root / 'model_{fold}.pt'.format(fold=fold)
 
     # Read existing weights for both G and D models
-    G_model_path = root / 'G_model_{fold}.pt'.format(fold=fold)
-    D_model_path = root / 'D_model_{fold}.pt'.format(fold=fold)
+    G_model_path = model_root / 'G_model_{fold}.pt'.format(fold=fold)
+    D_model_path = model_root / 'D_model_{fold}.pt'.format(fold=fold)
     if G_model_path.exists() and D_model_path.exists():
         state = torch.load(str(G_model_path))
         netG.load_state_dict(state['model'])

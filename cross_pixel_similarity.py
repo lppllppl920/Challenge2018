@@ -51,7 +51,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
     lr = 1.0e-4
-    n_epochs = 100
+    n_epochs = 200
     add_log = False
     add_output = True
     model = UNet_softmax(num_classes=6, filters_base=6, input_channels=3, add_output=add_output)
@@ -60,11 +60,17 @@ if __name__ == '__main__':
 
     optimizer = Adam(model.parameters(), lr=lr)
 
-    model_root = root / "models"
-    model_root.mkdir(mode=0o777, parents=False, exist_ok=True)
+    try:
+        model_root = root / "models"
+        model_root.mkdir(mode=0o777, parents=False)
+    except OSError:
+        print("")
 
-    results_root = root / "results"
-    results_root.mkdir(mode=0o777, parents=False, exist_ok=True)
+    try:
+        results_root = root / "results"
+        results_root.mkdir(mode=0o777, parents=False)
+    except OSError:
+        print("")
 
     model_path = model_root / 'model_{fold}.pt'.format(fold=fold)
 
@@ -112,9 +118,9 @@ if __name__ == '__main__':
                 # cv2.waitKey()
 
                 embeddings = model(colors)
-                # images = utils.draw_embeddings(colors, embeddings)
-                # utils.write_images(images, root=results_root, file_prefix="embedding")
-                # cv2.waitKey()
+                images = utils.draw_embeddings(colors, embeddings, 10)
+                utils.write_images(images, root=results_root, file_prefix="embedding_epoch_" + str(epoch) + "_" + str(i) + "_")
+                cv2.waitKey()
                 loss = cross_pixel_loss(embeddings, flows)
                 optimizer.zero_grad()
                 loss.backward()

@@ -200,10 +200,10 @@ def draw_hsv(flow):
     return bgr
 
 
-def draw_embeddings(colors, embeddings):
+def draw_embeddings(colors, embeddings, seed=0):
     embeddings_cpu = embeddings.data.cpu().numpy()
     colors_cpu = colors.data.cpu().numpy()
-    np.random.seed(0)
+    np.random.seed(seed)
     projection = np.random.randn(3, embeddings_cpu.shape[1])
 
     images = []
