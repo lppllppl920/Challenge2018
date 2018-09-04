@@ -7,6 +7,9 @@
     <orderEntry type="module" module-name="robot-surgery-segmentation-master" />
     <orderEntry type="module" module-name="RelativisticGAN" />
     <orderEntry type="module" module-name="RelativisticGAN" />
+    <orderEntry type="module" module-name="CAD_model_projection" />
+    <orderEntry type="module" module-name="ToolTracking" />
+    <orderEntry type="module" module-name="RelativisticGAN" />
   </component>
   <component name="TestRunnerService">
     <option name="projectConfiguration" value="py.test" />

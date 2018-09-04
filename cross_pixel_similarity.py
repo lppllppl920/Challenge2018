@@ -45,7 +45,6 @@ if __name__ == '__main__':
 
     root = Path("G:/Johns Hopkins University/Challenge/davinci_surgical_video/video_1")
     file_names = list(root.glob('frame*'))
-
     train_dataset = VideoOpticalFlowDataset(image_file_names=file_names, to_augment=True, transform=train_transform(),
                                             img_width=1280, img_height=1024, factor=0.01)
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)

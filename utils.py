@@ -23,38 +23,40 @@ def read_json(file_path = "G:\Johns Hopkins University\Challenge\miccai_challeng
     return class_color_table
 
 
-def get_color_file_names(fold=0,
+def get_color_file_names(fold=1,
                          root=Path("G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data")):
-    folds = {0: [1, 3],
-             1: [2, 5],
-             2: [4, 8],
-             3: [6, 7]}
 
-    train_file_names = []
-    val_file_names = []
-    for i in range(1, 8):
-        if i in folds[fold]:
-            val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
-        else:
+    if(fold > 0):
+        train_file_names = []
+        val_file_names = []
+        for i in range(1, 16):
+            if i == fold:
+                val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+            else:
+                train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+        train_file_names.sort(), val_file_names.sort()
+        return train_file_names, val_file_names
+    else:
+        ## No validation
+        train_file_names = []
+        for i in range(1, 16):
             train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
-    return train_file_names, val_file_names
+            train_file_names.sort()
+        return train_file_names
 
-def get_color_file_names_both_cam(fold=0,
+def get_color_file_names_both_cam(fold=1,
                          root=Path("G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data")):
-    folds = {0: [1, 3],
-             1: [2, 5],
-             2: [4, 8],
-             3: [6, 7]}
 
     train_file_names = []
     val_file_names = []
-    for i in range(1, 8):
-        if i in folds[fold]:
+    for i in range(1, 16):
+        if i == fold:
             val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
             val_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
         else:
             train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
             train_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+    train_file_names.sort(), val_file_names.sort()
     return train_file_names, val_file_names
 
 
@@ -205,15 +207,14 @@ def draw_embeddings(colors, embeddings, seed=0):
     colors_cpu = colors.data.cpu().numpy()
     np.random.seed(seed)
     projection = np.random.randn(3, embeddings_cpu.shape[1])
-
+    print(projection)
     images = []
     for i in range(embeddings_cpu.shape[0]):
         temp = np.moveaxis(embeddings_cpu[i], [0, 1, 2], [2, 0, 1])
         temp = np.expand_dims(temp, axis=-1)
-        print(temp.shape)
-        projected = np.squeeze(np.matmul(projection, temp))
-        print(projected.shape)
-        projected_display = np.uint8(255 * (projected - np.max(projected)) / (np.max(projected) - np.min(projected)))
+        projected = np.log(1.0 + np.abs(np.squeeze(np.matmul(projection, temp))))
+        projected_display = np.uint8(255 * (projected - np.max(projected, axis=(0, 1), keepdims=True)) /
+                                     (np.max(projected, axis=(0, 1), keepdims=True) - np.min(projected, axis=(0, 1), keepdims=True)))
         display_color = np.uint8(255 * (np.moveaxis(colors_cpu[i], [0, 1, 2], [2, 0, 1]) * 0.5 + 0.5))
         display = cv2.hconcat((display_color, projected_display))
         images.append(display)
