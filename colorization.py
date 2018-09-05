@@ -20,7 +20,8 @@ from transforms import (DualCompose,
                         HorizontalFlip,
                         VerticalFlip,
                         MaskOnly,
-                        RandomNoise)
+                        RandomNoise,
+                        RandomCrop)
 
 if __name__ == '__main__':
     device = torch.device("cuda")
@@ -31,18 +32,20 @@ if __name__ == '__main__':
     root = Path("/home/xingtong/")
     data_root = root / "miccai_challenge_2018_training_data"
     json_file_name = str(data_root / "labels.json")
-    train_file_names, val_file_names = get_color_file_names_both_cam(fold=fold, root=data_root)
+    train_file_names, val_file_names = get_color_file_names_both_cam(root=data_root)
 
     lr = 2.0e-4
     gaussian_std = 0.05
     n_epochs = 600
-    scale = 4
+    # scale = 4
 
-    img_width = 1280 // scale
-    img_height = 1024 // scale
+    img_width = 256 #1280 // scale
+    img_height = 256 #1024 // scale
+    offset = 30
     loss_ratio = 0.5
     train_transform = DualCompose([
-        Resize(w=img_width, h=img_height),
+        Resize(w=img_width + offset, h=img_height + offset),
+        RandomCrop(size=(img_height, img_width)),
         HorizontalFlip(),
         VerticalFlip(),
         Normalize(normalize_mask=True)])
@@ -72,8 +75,8 @@ if __name__ == '__main__':
     summary(netD, input_size=(3, img_height, img_width))
 
     # Optimizer
-    G_optimizer = Adam(filter(lambda p: p.requires_grad, netG.parameters()), lr=lr, betas=(0.5, 0.999))
-    # G_optimizer = Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
+    # G_optimizer = Adam(filter(lambda p: p.requires_grad, netG.parameters()), lr=lr, betas=(0.5, 0.999))
+    G_optimizer = Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
     D_optimizer = Adam(netD.parameters(), lr=lr, betas=(0.5, 0.999))
 
     try:
@@ -109,7 +112,7 @@ if __name__ == '__main__':
         step = 0
         best_mean_error = 0.0
 
-    G_model_path_1 = model_root / 'compatible_G_model_{fold}.pt'.format(fold=fold)
+    G_model_path_1 = model_root / 'compatible_G_model_{fold}_entire_dataset.pt'.format(fold=fold)
     torch.save(netG.state_dict(), str(G_model_path_1))
 
     # save = lambda ep, model, model_path, error: torch.save({

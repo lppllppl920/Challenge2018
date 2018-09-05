@@ -44,18 +44,23 @@ def get_color_file_names(fold=1,
             train_file_names.sort()
         return train_file_names
 
-def get_color_file_names_both_cam(fold=1,
-                         root=Path("G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data")):
+def get_color_file_names_both_cam(root=Path("G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data")):
 
     train_file_names = []
     val_file_names = []
     for i in range(1, 16):
-        if i == fold:
-            val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
-            val_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
-        else:
-            train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
-            train_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+        # if i == fold:
+        #     val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+        #     val_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+        # else:
+        train_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+        train_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+
+    for i in range(18, 22):
+        val_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+        val_file_names += list((root / ('seq_' + str(i)) / 'right_frames').glob('frame*'))
+
+
     train_file_names.sort(), val_file_names.sort()
     return train_file_names, val_file_names
 
