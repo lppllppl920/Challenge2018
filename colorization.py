@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     lr = 2.0e-4
     gaussian_std = 0.05
-    n_epochs = 200
+    n_epochs = 600
     scale = 4
 
     img_width = 1280 // scale
@@ -46,9 +46,6 @@ if __name__ == '__main__':
         HorizontalFlip(),
         VerticalFlip(),
         Normalize(normalize_mask=True)])
-    # ])
-    # ,
-    #         ImageOnly([RandomNoise(p=1.0, bias=True)]
 
     valid_transform = DualCompose([
         Resize(w=img_width, h=img_height),
