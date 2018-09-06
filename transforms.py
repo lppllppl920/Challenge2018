@@ -583,6 +583,59 @@ class RandomFilter:
 # brightness, contrast, saturation-------------
 # from mxnet code, see: https://github.com/dmlc/mxnet/blob/master/python/mxnet/image.py
 
+class RandomBrightnessDual:
+    def __init__(self, limit=0.1, prob=0.5):
+        self.limit = limit
+        self.prob = prob
+
+    def __call__(self, img, mask=None):
+        if random.random() < self.prob:
+            hsv = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
+            hsv = np.array(hsv, dtype=np.float64)
+            hsv[:, :, 2] = hsv[:, :, 2] * (1.0 + self.limit * np.random.uniform(low=-1.0, high=1.0))
+            hsv[:, :, 2][hsv[:, :, 2] > 255] = 255 #reset out of range values
+            mask = cv2.cvtColor(np.array(hsv, dtype=np.uint8), cv2.COLOR_HSV2BGR)
+            img = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+            img = np.repeat(np.expand_dims(img, axis=-1), repeats=3, axis=-1)
+
+        return img, mask
+
+class RandomContrastDual:
+    def __init__(self, limit=.1, prob=.5):
+        self.limit = limit
+        self.prob = prob
+
+    def __call__(self, img, mask=None):
+        if random.random() < self.prob:
+            alpha = 1.0 + self.limit * random.uniform(-1, 1)
+
+            gray = cv2.cvtColor(mask[:, :, :3], cv2.COLOR_BGR2GRAY)
+            gray = (3.0 * (1.0 - alpha) / gray.size) * np.sum(gray)
+            maxval = np.max(mask[..., :3])
+            dtype = mask.dtype
+            mask[:, :, :3] = clip(alpha * mask[:, :, :3] + gray, dtype, maxval)
+            img = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+            img = np.repeat(np.expand_dims(img, axis=-1), repeats=3, axis=-1)
+
+        return img, mask
+
+class RandomSaturationDual:
+    def __init__(self, limit=0.3, prob=0.5):
+        self.limit = limit
+        self.prob = prob
+
+    def __call__(self, img, mask=None):
+        # dont work :(
+        if random.random() < self.prob:
+            hsv = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
+            hsv = np.array(hsv, dtype=np.float64)
+            hsv[:, :, 1] = hsv[:, :, 1] * (1.0 + self.limit * np.random.uniform(low=-1.0, high=1.0))
+            hsv[:, :, 1][hsv[:, :, 1] > 255] = 255  # reset out of range values
+            mask = cv2.cvtColor(np.array(hsv, dtype=np.uint8), cv2.COLOR_HSV2BGR)
+            img = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+            img = np.repeat(np.expand_dims(img, axis=-1), repeats=3, axis=-1)
+        return img, mask
+
 class RandomBrightness:
     def __init__(self, limit=0.1, prob=0.5):
         self.limit = limit
@@ -590,11 +643,11 @@ class RandomBrightness:
 
     def __call__(self, img):
         if random.random() < self.prob:
-            alpha = 1.0 + self.limit * random.uniform(-1, 1)
-
-            maxval = np.max(img[..., :3])
-            dtype = img.dtype
-            img[..., :3] = clip(alpha * img[..., :3], dtype, maxval)
+            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            hsv = np.array(hsv, dtype=np.float64)
+            hsv[:, :, 2] = hsv[:, :, 2] * (1.0 + self.limit * np.random.uniform(low=-1.0, high=1.0))
+            hsv[:, :, 2][hsv[:, :, 2] > 255] = 255 #reset out of range values
+            img = cv2.cvtColor(np.array(hsv, dtype=np.uint8), cv2.COLOR_HSV2BGR)
         return img
 
 

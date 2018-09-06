@@ -22,7 +22,9 @@ from transforms import (DualCompose,
                         VerticalFlip,
                         MaskOnly,
                         RandomNoise,
-                        NormalizeImage)
+                        NormalizeImage,
+                        RandomBrightnessDual,
+                        RandomContrastDual)
 
 if __name__ == '__main__':
     device = torch.device("cuda")
@@ -45,8 +47,12 @@ if __name__ == '__main__':
         # Resize(w=img_width, h=img_height),
         HorizontalFlip(),
         VerticalFlip(),
+        ImageOnly(
+            [RandomBrightnessDual(limit=0.3),
+             RandomContrastDual(limit=0.3)
+             ]),
         ImageOnly([NormalizeImage()])])
-
+    # RandomSaturation(limit=0.3)
     valid_transform = DualCompose([
         # Resize(w=img_width, h=img_height),
         ImageOnly([NormalizeImage()])
@@ -118,14 +124,14 @@ if __name__ == '__main__':
                 colors = colors.to(device)
                 flows = flows.to(device)
 
-                # cpu_flows = flows.data.cpu().numpy()
-                # images = colors.data.cpu().numpy()
-                # cpu_flows = np.moveaxis(cpu_flows, [0, 1, 2, 3], [0, 3, 1, 2])
-                # images = np.moveaxis(images, [0, 1, 2, 3], [0, 3, 1, 2])
-                #
-                # cv2.imshow('flow HSV', utils.draw_hsv(cpu_flows[0] * scale))
-                # cv2.imshow("color", images[0] * 0.5 + 0.5)
-                # cv2.waitKey()
+                cpu_flows = flows.data.cpu().numpy()
+                images = colors.data.cpu().numpy()
+                cpu_flows = np.moveaxis(cpu_flows, [0, 1, 2, 3], [0, 3, 1, 2])
+                images = np.moveaxis(images, [0, 1, 2, 3], [0, 3, 1, 2])
+
+                cv2.imshow('flow HSV', utils.draw_hsv(cpu_flows[0] * scale))
+                cv2.imshow("color", images[0] * 0.5 + 0.5)
+                cv2.waitKey()
 
                 embeddings = net(colors)
                 loss = cross_pixel_loss(embeddings, flows)
@@ -139,10 +145,10 @@ if __name__ == '__main__':
                 tq.set_postfix(loss='{:.5f}'.format(mean_loss))
                 # if(i == len(train_loader) - 1):
                 # if(i == 0):
-                images = utils.draw_embeddings(colors, embeddings, 5)
-                utils.write_images(images, root=results_root, file_prefix="embedding_epoch_" + str(epoch) + "_" + str(i) + "_")
-                # cv2.waitKey(100)
-                cv2.waitKey()
+                # images = utils.draw_embeddings(colors, embeddings, 5)
+                # utils.write_images(images, root=results_root, file_prefix="embedding_epoch_" + str(epoch) + "_" + str(i) + "_")
+                # # cv2.waitKey(100)
+                # cv2.waitKey()
             tq.set_postfix(loss='{:.5f}'.format(np.mean(losses)))
             tq.close()
             save(epoch + 1)
