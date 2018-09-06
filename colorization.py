@@ -24,7 +24,8 @@ from transforms import (DualCompose,
                         RandomCrop,
                         RandomBrightnessDual,
                         RandomContrastDual,
-                        RandomSaturationDual)
+                        RandomSaturationDual,
+                        RandomColorDual)
 
 if __name__ == '__main__':
     device = torch.device("cuda")
@@ -51,9 +52,10 @@ if __name__ == '__main__':
         RandomCrop(size=(img_height, img_width)),
         HorizontalFlip(),
         VerticalFlip(),
-        RandomBrightnessDual(limit=0.3),
-        RandomContrastDual(limit=0.3),
-        RandomSaturationDual(limit=0.3),
+        RandomColorDual(limit=0.3, prob=1.0),
+        # RandomBrightnessDual(limit=0.3),
+        # RandomContrastDual(limit=0.3),
+        # RandomSaturationDual(limit=0.3),
         Normalize(normalize_mask=True)])
 
     valid_transform = DualCompose([
@@ -64,7 +66,7 @@ if __name__ == '__main__':
     train_dataset = Challenge2018ColorizationDataset(image_file_names=train_file_names,
                                                      to_augment=True, transform=train_transform)
 
-    val_dataset = Challenge2018ColorizationDataset(image_file_names=val_file_names[:50],
+    val_dataset = Challenge2018ColorizationDataset(image_file_names=val_file_names[::20],
                                                    to_augment=True, transform=valid_transform)
 
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)

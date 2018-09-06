@@ -583,6 +583,35 @@ class RandomFilter:
 # brightness, contrast, saturation-------------
 # from mxnet code, see: https://github.com/dmlc/mxnet/blob/master/python/mxnet/image.py
 
+class RandomColorDual:
+    def __init__(self, limit=0.1, prob=0.8):
+        self.limit = limit
+        self.prob = prob
+
+    def __call__(self, img, mask=None):
+        temp = mask.copy()
+        if random.random() < self.prob:
+            hsv = cv2.cvtColor(mask, cv2.COLOR_BGR2HSV)
+            hsv = np.array(hsv, dtype=np.float64)
+            hsv[:, :, 2] = hsv[:, :, 2] * (1.0 + self.limit * np.random.uniform(low=-1.0, high=1.0))
+            hsv[:, :, 2][hsv[:, :, 2] > 255] = 255 #reset out of range values
+
+            hsv[:, :, 1] = hsv[:, :, 1] * (1.0 + self.limit * np.random.uniform(low=-1.0, high=1.0))
+            hsv[:, :, 1][hsv[:, :, 1] > 255] = 255 #reset out of range values
+            mask = cv2.cvtColor(np.array(hsv, dtype=np.uint8), cv2.COLOR_HSV2BGR)
+
+            alpha = 1.0 + self.limit * random.uniform(-1, 1)
+            gray = cv2.cvtColor(mask[:, :, :3], cv2.COLOR_BGR2GRAY)
+            gray = (3.0 * (1.0 - alpha) / gray.size) * np.sum(gray)
+            maxval = np.max(mask[..., :3])
+            dtype = mask.dtype
+            mask[:, :, :3] = clip(alpha * mask[:, :, :3] + gray, dtype, maxval)
+
+            img = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+            img = np.repeat(np.expand_dims(img, axis=-1), repeats=3, axis=-1)
+
+        return img, temp
+
 class RandomBrightnessDual:
     def __init__(self, limit=0.1, prob=0.5):
         self.limit = limit

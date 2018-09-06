@@ -10,7 +10,7 @@ import torch
 import tqdm
 
 
-def read_json(file_path = "G:\Johns Hopkins University\Challenge\miccai_challenge_2018_training_data\labels.json"):
+def read_json(file_path):
     with open(file_path) as data_file:
         data = json.load(data_file)
 
@@ -147,23 +147,23 @@ def train(args, model, criterion, train_loader, valid_loader, validation, init_o
             return
 
 
-def write_images(class_images, class_color_table, root, prefix, frame_count):
-    class_shape = class_images.shape
-    table_shape = class_color_table.shape
-
-    for batch_index in range(class_shape[0]):
-        class_image = class_images[batch_index]
-        class_image_vector = np.reshape(class_image, (-1, 1))
-        rgb_class_image_vector = np.zeros((class_image_vector.shape[0], 3))
-        for class_id in range(table_shape[0]):
-            indices = np.where(np.all(class_image_vector == class_id, axis=-1))
-            rgb_class_image_vector[indices] = class_color_table[class_id]
-
-        rgb_class_image = np.reshape(rgb_class_image_vector, (class_shape[1], class_shape[2], 3))
-        cv2.imwrite(str(root / prefix) + str(frame_count) + ".png", np.uint8(rgb_class_image))
-        frame_count += 1
-
-    return frame_count
+# def write_images(class_images, class_color_table, root, prefix, frame_count):
+#     class_shape = class_images.shape
+#     table_shape = class_color_table.shape
+#
+#     for batch_index in range(class_shape[0]):
+#         class_image = class_images[batch_index]
+#         class_image_vector = np.reshape(class_image, (-1, 1))
+#         rgb_class_image_vector = np.zeros((class_image_vector.shape[0], 3))
+#         for class_id in range(table_shape[0]):
+#             indices = np.where(np.all(class_image_vector == class_id, axis=-1))
+#             rgb_class_image_vector[indices] = class_color_table[class_id]
+#
+#         rgb_class_image = np.reshape(rgb_class_image_vector, (class_shape[1], class_shape[2], 3))
+#         cv2.imwrite(str(root / prefix) + str(frame_count) + ".png", np.uint8(rgb_class_image))
+#         frame_count += 1
+#
+#     return frame_count
 
 
 def init_net(net):
@@ -231,5 +231,22 @@ def draw_embeddings(colors, embeddings, seed=0):
 def write_images(images, root, file_prefix="embeddings"):
     for i, image in enumerate(images):
         cv2.imwrite(str(root / (file_prefix + "_{:03d}.png").format(i)), image)
-
     return
+
+## TODO:
+## Provide a list of starting position, a list of cropped outputs, original image size and cropped image size
+## We assume the cropped_image_list is BxHxWx11 where the position of determined class is 1
+def crop_majority_voting(start_pos_list, cropped_image_list, org_size, crop_size, color_table):
+    assert(len(org_size) == 2)
+    assert(len(crop_size) == 2)
+    assert(color_table.shape[0] == 11)
+    voting_ground = np.zeros((org_size[0], org_size[1], 11), dtype=np.uint8)
+    final_color_map = np.zeros((org_size[0], org_size[1], 3), dtype=np.uint8)
+    for start_pos, cropped_image in zip(start_pos_list, cropped_image_list):
+        voting_ground[start_pos[0]:start_pos[0] + crop_size[0], start_pos[1]:start_pos[1] + crop_size[1], :] += cropped_image
+    voting_result_map = np.argmax(voting_ground, axis=-1)
+    # print(voting_result_map)
+    for i in range(11):
+        final_color_map[voting_result_map == i] = color_table[i]
+
+    return final_color_map

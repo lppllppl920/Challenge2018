@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../RelativisticGAN" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../pix2pix" vcs="Git" />
   </component>
 </project>
