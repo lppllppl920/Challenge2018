@@ -4,8 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../CAD_model_projection/.idea/CAD_model_projection.iml" filepath="$PROJECT_DIR$/../CAD_model_projection/.idea/CAD_model_projection.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/Challenge.iml" filepath="$PROJECT_DIR$/.idea/Challenge.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../RelativisticGAN/.idea/RelativisticGAN.iml" filepath="$PROJECT_DIR$/../RelativisticGAN/.idea/RelativisticGAN.iml" />
       <module fileurl="file://$PROJECT_DIR$/../RelativisticGAN-related/.idea/RelativisticGAN.iml" filepath="$PROJECT_DIR$/../RelativisticGAN-related/.idea/RelativisticGAN.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../RelativisticGAN/.idea/RelativisticGAN.iml" filepath="$PROJECT_DIR$/../RelativisticGAN/.idea/RelativisticGAN.iml" />
       <module fileurl="file://$PROJECT_DIR$/../ToolTracking/.idea/ToolTracking.iml" filepath="$PROJECT_DIR$/../ToolTracking/.idea/ToolTracking.iml" />
       <module fileurl="file://G:/Johns Hopkins University/Challenge/robot-surgery-segmentation-master/robot-surgery-segmentation-master/.idea/robot-surgery-segmentation-master.iml" filepath="G:/Johns Hopkins University/Challenge/robot-surgery-segmentation-master/robot-surgery-segmentation-master/.idea/robot-surgery-segmentation-master.iml" />
     </modules>

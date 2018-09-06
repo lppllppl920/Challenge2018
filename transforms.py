@@ -680,7 +680,7 @@ class RandomSaturation:
             dtype = img.dtype
             alpha = 1.0 + random.uniform(-self.limit, self.limit)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            gray = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+            # gray = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
             img[..., :3] = alpha * img[..., :3] + (1.0 - alpha) * gray
             img[..., :3] = clip(img[..., :3], dtype, maxval)
         return img
