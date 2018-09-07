@@ -120,9 +120,9 @@ if __name__ == '__main__':
         step = 0
         best_mean_error = 0.0
 
-    # G_model_path_1 = model_root / 'compatible_G_model_{fold}_entire_dataset.pt'.format(fold=fold)
-    # torch.save(netG.state_dict(), str(G_model_path_1))
-
+    G_model_path_1 = model_root / 'compatible_G_model_{fold}_entire_dataset.pt'.format(fold=fold)
+    torch.save(netG.state_dict(), str(G_model_path_1))
+'''
     save = lambda ep, model, model_path, error: torch.save({
         'model': model.state_dict(),
         'epoch': ep,
@@ -312,3 +312,5 @@ if __name__ == '__main__':
             print('Ctrl+C, saving snapshot')
             print('done.')
             exit()
+
+'''

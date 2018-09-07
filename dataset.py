@@ -47,6 +47,21 @@ class VideoOpticalFlowDataset(Dataset):
         return img_to_tensor(img_1), img_to_tensor(flow / self.scale)
 
 
+class ChallengeTestDataset(Dataset):
+    def __init__(self, image_file_names, transform=None):
+        self.image_file_names = image_file_names
+        self.transform = transform
+    def __len__(self):
+        return len(self.image_file_names)
+    def __getitem__(self, idx):
+        image_file_name = str(self.image_file_names[idx])
+        image = cv2.imread(image_file_name)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = self.transform(image)
+        return image #img_to_tensor(image)
+
+
+
 class Challenge2018OpticalFlowDataset(Dataset):
     def __init__(self, image_file_names, to_augment=True, transform=None, img_width=1280, img_height=1024, factor=0.05, p=0.5):
         self.image_file_names = image_file_names

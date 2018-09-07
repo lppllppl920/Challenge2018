@@ -136,6 +136,14 @@ class ImageOnly:
             x = t(x)
         return x, mask
 
+class ImageRealOnly:
+    def __init__(self, trans):
+        self.trans = trans
+
+    def __call__(self, x):
+        for t in self.trans:
+            x = t(x)
+        return x
 
 class MaskOnly:
     def __init__(self, trans):
@@ -181,6 +189,15 @@ class Resize:
         if mask is not None:
             mask = cv2.resize(mask, dsize=(self.w, self.h))
         return img, mask
+
+class ResizeImage:
+    def __init__(self, h, w):
+        self.h = h
+        self.w = w
+
+    def __call__(self, img):
+        img = cv2.resize(img, dsize=(self.w, self.h))
+        return img
 
 
 class RandomFlip:
@@ -433,9 +450,9 @@ class NormalizeImage:
     def __init__(self, mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)):
         self.mean = mean
         self.std = std
+        self.max_val = 255.0
     def __call__(self, img):
-        max_pixel_value = 255.0
-        img = img.astype(np.float32) / max_pixel_value
+        img = img.astype(np.float32) / self.max_val
         img -= np.ones(img.shape) * self.mean
         img /= np.ones(img.shape) * self.std
         return img

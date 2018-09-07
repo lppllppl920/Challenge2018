@@ -18,7 +18,7 @@ def read_json(file_path):
     ## Convert RGB to BGR to follow the colorspace convetion of OpenCV
     for i in range(len(data)):
         temp = data[i]["color"]
-        class_color_table[i] = [temp[2], temp[1], temp[0]]
+        class_color_table[i] = [temp[0], temp[1], temp[2]]
 
     return class_color_table
 
@@ -64,6 +64,13 @@ def get_color_file_names_both_cam(root=Path("G:\Johns Hopkins University\Challen
     train_file_names.sort(), val_file_names.sort()
     return train_file_names, val_file_names
 
+
+def get_test_color_file_names(root):
+    test_file_names = []
+    for i in range(18, 22):
+        test_file_names += list((root / ('seq_' + str(i)) / 'left_frames').glob('frame*'))
+    test_file_names.sort()
+    return test_file_names
 
 def cuda(x):
     return x.cuda(async=True) if torch.cuda.is_available() else x
@@ -236,17 +243,40 @@ def write_images(images, root, file_prefix="embeddings"):
 ## TODO:
 ## Provide a list of starting position, a list of cropped outputs, original image size and cropped image size
 ## We assume the cropped_image_list is BxHxWx11 where the position of determined class is 1
+## color table is in RGB format
 def crop_majority_voting(start_pos_list, cropped_image_list, org_size, crop_size, color_table):
     assert(len(org_size) == 2)
     assert(len(crop_size) == 2)
     assert(color_table.shape[0] == 11)
-    voting_ground = np.zeros((org_size[0], org_size[1], 11), dtype=np.uint8)
-    final_color_map = np.zeros((org_size[0], org_size[1], 3), dtype=np.uint8)
-    for start_pos, cropped_image in zip(start_pos_list, cropped_image_list):
+    voting_ground = np.zeros((org_size[0], org_size[1], 11), dtype=np.float32)
+    final_color_map = np.zeros((org_size[0], org_size[1], 3), dtype=np.float32)
+
+    for i in range(len(start_pos_list)):
+        start_pos = start_pos_list[i]
+        cropped_image = cropped_image_list[i]
+    # for start_pos, cropped_image in zip(start_pos_list, cropped_image_list):
         voting_ground[start_pos[0]:start_pos[0] + crop_size[0], start_pos[1]:start_pos[1] + crop_size[1], :] += cropped_image
     voting_result_map = np.argmax(voting_ground, axis=-1)
-    # print(voting_result_map)
     for i in range(11):
         final_color_map[voting_result_map == i] = color_table[i]
 
-    return final_color_map
+    print(final_color_map[voting_result_map == 4])
+    return final_color_map / 255.0
+
+## color table is in RGB format
+## masks are in RGB format
+def convert_color_mask_to_one_hot_mask(masks, color_table):
+
+    one_hot_masks = np.zeros((masks.shape[0], masks.shape[1], masks.shape[2], 11), dtype=np.float32)
+    for i in range(11):
+        one_hot_masks[:, :, :, i] = np.sum(np.abs(masks - color_table[i]), axis=-1)
+
+    one_hot_map = np.argmin(one_hot_masks, axis=-1)
+    # cv2.imshow("gray", np.uint8(one_hot_map[0] * 20))
+    # cv2.waitKey()
+    for i in range(11):
+        temp = np.zeros((11,), dtype=np.float32)
+        temp[i] = 1.0
+        one_hot_masks[one_hot_map == i] = temp
+
+    return one_hot_masks
